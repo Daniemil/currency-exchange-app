@@ -1,6 +1,6 @@
 import React, {Component} from 'react'
-import { optionalCallExpression } from '@babel/types';
 import CurList from './CurList'
+import ConversionResult from './ConversionResult'
 
 class CurrencyConverter extends Component {
     constructor(){
@@ -8,64 +8,75 @@ class CurrencyConverter extends Component {
         this.state = {
             amount: "1",
             baseCur: "USD",
-            toCur: "AUD",
+            toCur: "GBP",
             result: "",
+            selectedRate : "",
             allExRates: {}
         }
-
-        this.handleChange = this.handleChange.bind(this)
-        this.handleSubmit = this.handleSubmit.bind(this)
     }
 
-    /** componentDidMount(){
+    componentDidMount(){
        // const base = this
         const url = "https://api.exchangeratesapi.io/latest?base=USD" 
         fetch(url)
             .then(response => response.json())
             .then(response => {
                 const data = response.rates
+                const rate = response.rates[this.state.toCur]
+                const r = Number.parseFloat(this.state.amount * rate).toFixed(2)
                 this.setState({
-                    allExRates : data
+                    allExRates : data,
+                    result: r,
+                    selectedRate : rate 
+
                 })
             })
-    }*/
+    }
 
-    handleChange(e){
+    handleChange = (e) => {
         const {name, value} = e.target
+        if(name === "baseCur") {
+            const url = "https://api.exchangeratesapi.io/latest?base=" + value 
+            console.log(url)
+            fetch(url)
+                .then(response => response.json())
+                .then(response => {
+                    const data = response.rates
+                    const rate = response.rates[this.state.toCur]
+                    const r = Number.parseFloat(this.state.amount * rate).toFixed(2)
+                    this.setState({
+                        allExRates : data,
+                        result: r,
+                        selectedRate : rate 
+
+                    })
+                })
+        }
+        else if(name === "toCur"){
+            const rate = this.state.allExRates[value]
+            const r = Number.parseFloat(this.state.amount * rate).toFixed(2)
+            this.setState({
+                result: r,
+                selectedRate : rate
+            })
+        }
+        else if(name === "amount"){
+            const rate = this.state.allExRates[this.state.toCur]
+            const r = Number.parseFloat(value * rate).toFixed(2)
+            this.setState({
+                result: r
+            })
+        }
+        
         this.setState({
             [name] : value
         })
     }
 
-    handleSubmit(e){
-        e.preventDefault()
-        //fetch data
-        const url = "https://api.exchangeratesapi.io/latest?base=" + this.state.baseCur 
-        console.log(url)
-        fetch(url)
-            .then(response => response.json())
-            .then(response => {
-                const data = response.rates
-                this.setState({
-                    allExRates : data
-                })
-
-                //get exchange rate of chosen currency.
-                let rate = this.state.allExRates[this.state.toCur];
-                //calculate conversion round to 2 decimal places
-                let r = Number.parseFloat(this.state.amount * rate).toFixed(2)
-                this.setState({
-                    result: r
-                })
-            })
-        
-    }
-
     render(){
-        const ex = this.state.allExRates.GBP
         return (
             <div>
-                <form onSubmit={this.handleSubmit}>
+                <form >
                     <label>Amount: 
                         <input type="text" name="amount" value={this.state.amount}
                         onChange={this.handleChange} placeholder="amount" />   
@@ -76,10 +87,11 @@ class CurrencyConverter extends Component {
                     <label>To: 
                         <CurList  sName="toCur" sValue={this.state.toCur} handleChange={this.handleChange}/>
                     </label>
-                    <button>convert</button>
                 </form>
-
-                <h2>{this.state.result}</h2>
+                <ConversionResult cAmount={this.state.amount} cBaseCur={this.state.baseCur}
+                    cSelectedRate={this.state.selectedRate} cToCur={this.state.toCur} 
+                    cResult={this.state.result}/>
+                
             </div>
         )
     }
